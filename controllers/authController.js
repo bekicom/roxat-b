@@ -11,7 +11,7 @@ const userSchema = new mongoose.Schema({
 // Model olish helper
 function getUserModels() {
   const branch1Conn = getBranch1Conn();
-  const branch2Conn = getBranch2Conn();
+  // const branch2Conn = getBranch2Conn();
 
   const Branch1User = branch1Conn.model("User", userSchema, "users");
   const Branch2User = branch2Conn.model("User", userSchema, "users");
@@ -33,7 +33,7 @@ exports.register = async (req, res) => {
 
     // Ikkala bazaga ham yozamiz
     const user1 = await Branch1User.create({ username, password });
-    const user2 = await Branch2User.create({ username, password });
+    // const user2 = await Branch2User.create({ username, password });
 
     res.json({
       message: "✅ Foydalanuvchi yaratildi (ikkala filialda)",
