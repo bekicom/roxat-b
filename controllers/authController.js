@@ -7,8 +7,8 @@ const bcrypt = require("bcrypt"); // npm install bcrypt
 const userSchema = new mongoose.Schema({
   username: {
     type: String,
-    required: true,
-    unique: true,
+    
+    
     lowercase: true, // Avto lowercase qilish
     trim: true, // Space'larni olib tashlash
   },
