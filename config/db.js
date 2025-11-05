@@ -15,16 +15,24 @@ function connectDB() {
     });
 
     // Branch2
-    branch2Conn = mongoose.createConnection(process.env.MONGO_URI_BRANCH2, {
+    // Agar branch2/3 environment qiymatlari o'rnatilmagan bo'lsa,
+    // branch1 URI sini fallback sifatida ishlatamiz (local dev uchun qulay)
+    branch2Conn = mongoose.createConnection(
+      process.env.MONGO_URI_BRANCH2 || process.env.MONGO_URI_BRANCH1,
+      {
       useNewUrlParser: true,
       useUnifiedTopology: true,
-    });
+    }
+    );
 
     // Branch3
-    branch3Conn = mongoose.createConnection(process.env.MONGO_URI_BRANCH3, {
+    branch3Conn = mongoose.createConnection(
+      process.env.MONGO_URI_BRANCH3 || process.env.MONGO_URI_BRANCH1,
+      {
       useNewUrlParser: true,
       useUnifiedTopology: true,
-    });
+    }
+    );
 
     // Order modellarni aniqlash
     OrderBranch1 = branch1Conn.model("Order", orderSchema, "globalorders");
