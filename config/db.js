@@ -10,8 +10,10 @@ function connectDB() {
   try {
     // Branch1 (asosiy: users ham shu yerda)
     branch1Conn = mongoose.createConnection(process.env.MONGO_URI_BRANCH1, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
+      bufferCommands: false, // Buffering o'chirish
+      bufferMaxEntries: 0,
+      serverSelectionTimeoutMS: 5000, // 5s timeout
+      socketTimeoutMS: 45000,
     });
 
     // Branch2

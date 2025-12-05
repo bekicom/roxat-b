@@ -2,13 +2,13 @@ const { getBranch1Conn, getBranch2Conn } = require("../config/db");
 const jwt = require("jsonwebtoken");
 const mongoose = require("mongoose");
 
-// User schema
+// User schema (o'zgarmasdi)
 const userSchema = new mongoose.Schema({
   username: { type: String, required: true, unique: true },
   password: { type: String, required: true },
 });
 
-// Model olish helper
+// Model olish helper (o'zgarmasdi)
 function getUserModels() {
   const branch1Conn = getBranch1Conn();
   const branch2Conn = getBranch2Conn();
@@ -41,7 +41,25 @@ exports.register = async (req, res) => {
       branch2: user2,
     });
   } catch (err) {
-    console.error("❌ Register xato:", err.message);
+    // 🔄 To'liq xato log qilish
+    console.error("❌ Register xatosi - To'liq ma'lumotlar:");
+    console.error("Xato xabari:", err.message);
+    console.error("Stack trace:", err.stack); // Bu eng muhimi - qayerda xato bo'lganini ko'rsatadi
+    console.error("Qo'shimcha ma'lumotlar:", err); // Barcha err ob'ekti
+
+    // Development da to'liq xato response ga qo'shish
+    if (process.env.NODE_ENV === "development") {
+      return res.status(500).json({
+        message: "Server xatosi (development rejimida)",
+        error: {
+          message: err.message,
+          stack: err.stack,
+          details: err,
+        },
+      });
+    }
+
+    // Production da faqat umumiy xabar
     res.status(500).json({ message: "Server xatosi" });
   }
 };
@@ -57,26 +75,44 @@ exports.login = async (req, res) => {
       return res.status(404).json({ message: "❌ Foydalanuvchi topilmadi" });
 
     if (user.password !== password) {
-      return res.status(400).json({ message: "❌ Parol noto‘g‘ri" });
+      return res.status(400).json({ message: "❌ Parol noto'g'ri" });
     }
 
     // 🔑 Token generatsiya qilamiz
     const token = jwt.sign(
       { id: user._id, username: user.username },
-      process.env.JWT_SECRET || "sora-secret", // .env dan olingan maxfiy kalit
+      process.env.JWT_SECRET || "sora-secret",
       { expiresIn: "7d" }
     );
 
     res.json({
       message: "✅ Login muvaffaqiyatli",
-      token, // 👈 frontend shu tokenni oladi
+      token,
       user: {
         id: user._id,
         username: user.username,
       },
     });
   } catch (err) {
-    console.error("❌ Login xato:", err.message);
+    // 🔄 To'liq xato log qilish
+    console.error("❌ Login xatosi - To'liq ma'lumotlar:");
+    console.error("Xato xabari:", err.message);
+    console.error("Stack trace:", err.stack);
+    console.error("Qo'shimcha ma'lumotlar:", err);
+
+    // Development da to'liq xato response ga qo'shish
+    if (process.env.NODE_ENV === "development") {
+      return res.status(500).json({
+        message: "Server xatosi (development rejimida)",
+        error: {
+          message: err.message,
+          stack: err.stack,
+          details: err,
+        },
+      });
+    }
+
+    // Production da faqat umumiy xabar
     res.status(500).json({ message: "Server xatosi" });
   }
 };
