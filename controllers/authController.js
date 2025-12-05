@@ -1,122 +1,82 @@
 const { getBranch1Conn, getBranch2Conn } = require("../config/db");
 const jwt = require("jsonwebtoken");
 const mongoose = require("mongoose");
-const bcrypt = require("bcrypt");
 
 // User schema
 const userSchema = new mongoose.Schema({
-  username: {
-    type: String,
-    lowercase: true,
-    trim: true,
-    required: true,
-  },
+  username: { type: String, required: true, unique: true },
   password: { type: String, required: true },
 });
 
-// Password hashing
-userSchema.pre("save", async function (next) {
-  if (!this.isModified("password")) return next();
-  this.password = await bcrypt.hash(this.password, 10);
-  next();
-});
-
-// ----------------------
-// SAFE MODEL GETTER
-// ----------------------
+// Model olish helper
 function getUserModels() {
   const branch1Conn = getBranch1Conn();
+  const branch2Conn = getBranch2Conn();
 
-  // Modelni faqat BITTA marta yaratish – asosiy muammo shu edi!
-  const Branch1User =
-    branch1Conn.models.User || branch1Conn.model("User", userSchema, "users");
+  const Branch1User = branch1Conn.model("User", userSchema, "users");
+  const Branch2User = branch2Conn.model("User", userSchema, "users");
 
-  return { Branch1User };
+  return { Branch1User, Branch2User };
 }
 
-// ----------------------
-// REGISTER
-// ----------------------
+// 🔹 Foydalanuvchi yaratish (ikkala bazaga yoziladi)
 exports.register = async (req, res) => {
   try {
     const { username, password } = req.body;
+    const { Branch1User, Branch2User } = getUserModels();
 
-    const cleanUsername = username?.trim().toLowerCase();
-    const cleanPassword = password?.trim();
-
-    if (!cleanUsername || !cleanPassword) {
-      return res
-        .status(400)
-        .json({ message: "❌ Username va password majburiy" });
-    }
-
-    const { Branch1User } = getUserModels();
-
-    const existing = await Branch1User.findOne({ username: cleanUsername });
+    // Avval Branch1 da borligini tekshiramiz
+    const existing = await Branch1User.findOne({ username });
     if (existing) {
       return res.status(400).json({ message: "❌ Bu login allaqachon mavjud" });
     }
 
-    const user1 = await Branch1User.create({
-      username: cleanUsername,
-      password: cleanPassword,
-    });
-
-    const { password: _, ...safeUser } = user1.toObject();
+    // Ikkala bazaga ham yozamiz
+    const user1 = await Branch1User.create({ username, password });
+    const user2 = await Branch2User.create({ username, password });
 
     res.json({
-      message: "✅ Foydalanuvchi yaratildi (Branch1 da)",
-      branch1: safeUser,
+      message: "✅ Foydalanuvchi yaratildi (ikkala filialda)",
+      branch1: user1,
+      branch2: user2,
     });
   } catch (err) {
-    console.error("❌ Register xato:", err);
+    console.error("❌ Register xato:", err.message);
     res.status(500).json({ message: "Server xatosi" });
   }
 };
 
-// ----------------------
-// LOGIN
-// ----------------------
+// 🔹 Login (faqat Branch1 dan tekshiramiz)
 exports.login = async (req, res) => {
   try {
     const { username, password } = req.body;
-
-    const cleanUsername = username?.trim().toLowerCase();
-    const cleanPassword = password?.trim();
-
-    if (!cleanUsername || !cleanPassword) {
-      return res
-        .status(400)
-        .json({ message: "❌ Username va password majburiy" });
-    }
-
     const { Branch1User } = getUserModels();
 
-    const user = await Branch1User.findOne({ username: cleanUsername });
-    if (!user) {
+    const user = await Branch1User.findOne({ username });
+    if (!user)
       return res.status(404).json({ message: "❌ Foydalanuvchi topilmadi" });
+
+    if (user.password !== password) {
+      return res.status(400).json({ message: "❌ Parol noto‘g‘ri" });
     }
 
-    const isMatch = await bcrypt.compare(cleanPassword, user.password);
-    if (!isMatch) {
-      return res.status(400).json({ message: "❌ Parol noto'g'ri" });
-    }
-
+    // 🔑 Token generatsiya qilamiz
     const token = jwt.sign(
       { id: user._id, username: user.username },
-      process.env.JWT_SECRET || "sora-secret",
+      process.env.JWT_SECRET || "sora-secret", // .env dan olingan maxfiy kalit
       { expiresIn: "7d" }
     );
 
-    const { password: _, ...safeUser } = user.toObject();
-
     res.json({
       message: "✅ Login muvaffaqiyatli",
-      token,
-      user: safeUser,
+      token, // 👈 frontend shu tokenni oladi
+      user: {
+        id: user._id,
+        username: user.username,
+      },
     });
   } catch (err) {
-    console.error("❌ Login xato:", err);
+    console.error("❌ Login xato:", err.message);
     res.status(500).json({ message: "Server xatosi" });
   }
 };
