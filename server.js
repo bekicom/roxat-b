@@ -22,3 +22,4 @@ app.use("/api/dashboard", require("./routes/dashboardRoutes"));
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`🔥 Server ${PORT} portda ishlayapti`));
+// fsfsdxsd
